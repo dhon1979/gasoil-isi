@@ -1,0 +1,9 @@
+{
+  "name": "Despacho Gasoil ISI",
+  "short_name": "Gasoil",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#2D6E3E",
+  "theme_color": "#2D6E3E",
+  "icons": [{ "src": "icono.png", "sizes": "192x192", "type": "image/png" }]
+}

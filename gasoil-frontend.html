@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2D6E3E">
+<link rel="manifest" href="manifest.json">
+<title>Despacho Gasoil — Ingenio San Isidro</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/htm/3.1.1/htm.min.js"></script>
+<style>
+  :root { --verde:#2D6E3E; --verded:#235730; --oro:#C8991A; --gris:#f1f4f1; }
+  * { box-sizing:border-box; margin:0; font-family:system-ui,-apple-system,sans-serif; }
+  body { background:var(--gris); }
+  #root { max-width:480px; margin:0 auto; min-height:100vh; background:#fff;
+          box-shadow:0 0 24px rgba(0,0,0,.08); display:flex; flex-direction:column; }
+  header { background:var(--verde); color:#fff; padding:14px 16px 10px; }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logo .ic { width:38px; height:38px; background:var(--oro); border-radius:10px;
+              display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .estado { display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap; }
+  .chip { font-size:12px; padding:5px 10px; border-radius:9px; background:rgba(255,255,255,.18);
+          border:none; color:#fff; display:inline-flex; align-items:center; gap:5px; }
+  .chip.off { background:#7a2a2a; }
+  .chip.sync { background:var(--oro); font-weight:600; cursor:pointer; }
+  main { flex:1; overflow-y:auto; padding:16px 16px 90px; }
+  nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px;
+        background:#fff; border-top:1px solid #e3e7e3; display:flex; z-index:40; }
+  nav button { flex:1; padding:9px 1px 10px; border:none; background:none; font-size:10px;
+               color:#9aa39a; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  nav button.on { color:var(--verde); font-weight:600; }
+  nav button .i { font-size:18px; }
+  h2 { color:var(--verde); font-size:18px; margin-bottom:4px; }
+  h3 { color:var(--verde); font-size:14px; margin:0 0 8px; }
+  .sub { font-size:12px; color:#888; margin-bottom:14px; }
+  label { display:block; font-size:12px; font-weight:600; color:#555; margin:10px 0 4px; }
+  input, select, textarea { width:100%; padding:11px 12px; border:1px solid #d8ded8;
+        border-radius:12px; font-size:15px; background:#fff; }
+  input:disabled, select:disabled { background:#f4f4f4; color:#999; }
+  .hint { font-size:11px; color:#8a6d1a; background:#fdf6e3; border-radius:8px; padding:6px 10px; margin-top:4px; }
+  .err { color:#b91c1c; font-size:12px; margin-top:8px; }
+  .btn { width:100%; padding:14px; border:none; border-radius:13px; background:var(--verde);
+         color:#fff; font-size:16px; font-weight:600; margin-top:14px; }
+  .btn:active { opacity:.85; } .btn:disabled { background:#a9bfa9; }
+  .btn2 { background:#eef4ee; color:var(--verde); font-weight:600; border:none;
+          border-radius:10px; padding:8px 12px; font-size:12px; }
+  .btnr { background:#fdecea; color:#8a2a2a; font-weight:600; border:none;
+          border-radius:10px; padding:8px 12px; font-size:12px; }
+  .card { border:1px solid #e5e9e5; border-radius:14px; padding:12px; background:#fff; margin-bottom:10px; }
+  .card .top { display:flex; justify-content:space-between; align-items:flex-start; }
+  .card .lit { color:var(--oro); font-weight:700; font-size:16px; white-space:nowrap; }
+  .card .det { font-size:12px; color:#777; margin-top:6px; line-height:1.7; }
+  .tagp { font-size:11px; color:#b5790a; font-weight:600; }
+  .tags { font-size:11px; color:var(--verde); font-weight:600; }
+  .tagc { display:inline-block; font-size:11px; background:#fdf6e3; color:#8a6d1a;
+          border-radius:99px; padding:2px 9px; margin-top:6px; font-weight:600; }
+  .firma-box { border:2px dashed #cfd6cf; border-radius:12px; background:#fafbfa; position:relative; }
+  .firma-box canvas { width:100%; height:150px; display:block; touch-action:none; }
+  .firma-ph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+              color:#c5ccc5; font-size:13px; pointer-events:none; }
+  .fotoprev { width:100%; height:150px; object-fit:cover; border-radius:12px; border:1px solid #ddd; }
+  .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); width:calc(100% - 48px);
+           max-width:430px; background:var(--verded); color:#fff; padding:12px 16px; border-radius:12px;
+           font-size:14px; z-index:60; box-shadow:0 6px 20px rgba(0,0,0,.25); }
+  .toast.mal { background:#7a2a2a; }
+  .login { min-height:100vh; background:var(--verde); display:flex; align-items:center;
+           justify-content:center; padding:20px; }
+  .login .caja { background:#fff; border-radius:18px; padding:26px 22px; width:100%; max-width:360px; }
+  .saldo-card { border:1px solid #e5e9e5; border-radius:14px; padding:14px; margin-bottom:10px; }
+  .barra { height:8px; background:#eee; border-radius:99px; overflow:hidden; margin-top:8px; }
+  .barra div { height:100%; background:var(--verde); border-radius:99px; }
+  .fila-saldo { display:flex; justify-content:space-between; font-size:11px; color:#777; margin-top:6px; }
+  .filtros { display:flex; gap:8px; margin-bottom:12px; }
+  .filtros > div { flex:1; }
+  /* Panel */
+  .kpis { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+  .kpi { border:1px solid #e5e9e5; border-radius:12px; padding:10px 12px; }
+  .kpi .v { font-size:20px; font-weight:700; color:var(--verde); }
+  .kpi .v.oro { color:var(--oro); } .kpi .v.mar { color:#b5790a; }
+  .kpi .l { font-size:11px; color:#888; } .kpi .s { font-size:10px; color:#aaa; }
+  .seccion { border:1px solid #e5e9e5; border-radius:14px; padding:12px; margin-bottom:12px; }
+  .hbar { margin-bottom:8px; }
+  .hbar .lbl { display:flex; justify-content:space-between; font-size:11px; color:#666; margin-bottom:3px; }
+  .hbar .pista { height:14px; background:#f0f3f0; border-radius:7px; overflow:hidden; }
+  .hbar .rell { height:100%; border-radius:7px; background:var(--verde); min-width:2px; }
+  .dias { display:flex; align-items:flex-end; gap:2px; height:90px; margin-top:6px; }
+  .dias .dia { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0; }
+  .dias .col { width:100%; background:var(--verde); border-radius:3px 3px 0 0; min-height:2px; }
+  .dias .dl { font-size:8px; color:#999; white-space:nowrap; overflow:hidden; }
+  .tbl { width:100%; font-size:12px; border-collapse:collapse; }
+  .tbl td { padding:3px 0; color:#666; } .tbl td:last-child { text-align:right; font-weight:600; }
+  .tbl tr.tot td { border-top:1px solid #e5e9e5; color:var(--verde); font-weight:700; }
+  /* ABM */
+  .abm-row { border:1px solid #e5e9e5; border-radius:12px; padding:10px 12px; margin-bottom:8px;
+             display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .abm-row.inactivo { opacity:.5; }
+  .abm-row .info { flex:1; min-width:0; }
+  .abm-row .t1 { font-size:13px; font-weight:600; }
+  .abm-row .t2 { font-size:11px; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:70; display:flex;
+           align-items:flex-end; justify-content:center; }
+  .modal .caja { background:#fff; border-radius:18px 18px 0 0; width:100%; max-width:480px;
+                 padding:18px 18px 24px; max-height:85vh; overflow-y:auto; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+/* ================= CONFIG ================= */
+const API = 'https://script.google.com/macros/s/AKfycbxyTq7rxLumRL-7BvAlM2Cjsg73XSPsvT39ngBvebe9LrgF-pv4fRKCF91TBD1eT1N1/exec';
+
+const { useState, useEffect, useRef, useCallback } = React;
+const html = htm.bind(React.createElement);
+
+/* ================= INDEXEDDB ================= */
+const idb = {
+  _p: null,
+  open() {
+    if (this._p) return this._p;
+    this._p = new Promise((res, rej) => {
+      const r = indexedDB.open('gasoilapp', 1);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
+        if (!d.objectStoreNames.contains('cola')) d.createObjectStore('cola', { keyPath: 'id' });
+      };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return this._p;
+  },
+  async get(st, k) { const d = await this.open(); return new Promise((res, rej) => { const t = d.transaction(st).objectStore(st).get(k); t.onsuccess = () => res(t.result); t.onerror = () => rej(t.error); }); },
+  async put(st, v, k) { const d = await this.open(); return new Promise((res, rej) => { const t = d.transaction(st, 'readwrite').objectStore(st).put(v, k); t.onsuccess = () => res(); t.onerror = () => rej(t.error); }); },
+  async del(st, k) { const d = await this.open(); return new Promise((res, rej) => { const t = d.transaction(st, 'readwrite').objectStore(st).delete(k); t.onsuccess = () => res(); t.onerror = () => rej(t.error); }); },
+  async all(st) { const d = await this.open(); return new Promise((res, rej) => { const t = d.transaction(st).objectStore(st).getAll(); t.onsuccess = () => res(t.result || []); t.onerror = () => rej(t.error); }); }
+};
+
+/* ================= API ================= */
+async function api(action, payload = {}, token) {
+  const body = JSON.stringify(Object.assign({ action, token }, payload));
+  const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body });
+  const txt = await r.text();
+  try { return JSON.parse(txt); } catch (e) { return { ok: false, error: 'Respuesta inválida del servidor' }; }
+}
+
+const uid = () => 'd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+const fmt = n => new Intl.NumberFormat('es-AR').format(Math.round(Number(n) || 0));
+const fmtF = iso => { const d = new Date(iso); return isNaN(d) ? String(iso) : d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); };
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+const inicioMes = () => hoyISO().slice(0, 8) + '01';
+
+/* ============== COMPRESIÓN DE FOTO ============== */
+function comprimirFoto(file) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const esc = Math.min(1, 1000 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = img.width * esc; c.height = img.height * esc;
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL('image/jpeg', 0.7));
+    };
+    const fr = new FileReader();
+    fr.onload = () => img.src = fr.result;
+    fr.readAsDataURL(file);
+  });
+}
+
+/* ============== FIRMA ============== */
+function Firma({ value, onChange }) {
+  const ref = useRef(); const dib = useRef(false); const last = useRef({ x: 0, y: 0 });
+  const pos = e => { const c = ref.current, r = c.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) }; };
+  const down = e => { e.preventDefault(); dib.current = true; last.current = pos(e); try { e.target.setPointerCapture(e.pointerId); } catch (x) {} };
+  const move = e => { if (!dib.current) return; e.preventDefault();
+    const ctx = ref.current.getContext('2d'); const p = pos(e);
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(last.current.x, last.current.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last.current = p; };
+  const up = () => { if (!dib.current) return; dib.current = false; onChange(ref.current.toDataURL('image/png')); };
+  const limpiar = () => { const c = ref.current; c.getContext('2d').clearRect(0, 0, c.width, c.height); onChange(null); };
+  return html`<div>
+    <div class="firma-box">
+      <canvas ref=${ref} width="640" height="220"
+        onPointerDown=${down} onPointerMove=${move} onPointerUp=${up} onPointerLeave=${up}></canvas>
+      ${!value && html`<span class="firma-ph">✍️ Firma del chofer (conformidad)</span>`}
+    </div>
+    <button type="button" class="btnr" style=${{ marginTop: '6px' }} onClick=${limpiar}>✕ Limpiar firma</button>
+  </div>`;
+}
+
+/* ============== LOGIN ============== */
+function Login({ onOk }) {
+  const [usuario, setUsuario] = useState('');
+  const [pass, setPass] = useState('');
+  const [pass2, setPass2] = useState('');
+  const [crear, setCrear] = useState(false);
+  const [err, setErr] = useState('');
+  const [cargando, setCargando] = useState(false);
+
+  const entrar = async () => {
+    setErr('');
+    if (!usuario || !pass) return setErr('Completá usuario y contraseña');
+    if (crear && pass !== pass2) return setErr('Las contraseñas no coinciden');
+    if (!navigator.onLine) return setErr('Necesitás conexión para iniciar sesión la primera vez');
+    setCargando(true);
+    const r = await api(crear ? 'crearClave' : 'login', { usuario: usuario.trim(), pass });
+    setCargando(false);
+    if (r.ok) { onOk(r.data); }
+    else if (r.error === 'CREAR_CLAVE') { setCrear(true); setErr('Primer ingreso: creá tu contraseña'); }
+    else setErr(r.error || 'Error');
+  };
+
+  return html`<div class="login"><div class="caja">
+    <div style=${{ textAlign: 'center', marginBottom: '18px' }}>
+      <div style=${{ width: '56px', height: '56px', background: 'var(--oro)', borderRadius: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>⛽</div>
+      <h2 style=${{ marginTop: '10px' }}>Despacho de Gasoil</h2>
+      <div class="sub" style=${{ marginBottom: 0 }}>Ingenio San Isidro</div>
+    </div>
+    <label>Usuario (ej: desp1)</label>
+    <input value=${usuario} onInput=${e => setUsuario(e.target.value)} autocapitalize="none" placeholder="Tu usuario" />
+    <label>Contraseña</label>
+    <input type="password" value=${pass} onInput=${e => setPass(e.target.value)} placeholder="••••••" />
+    ${crear && html`<div>
+      <div class="hint">Primer ingreso: elegí tu contraseña (mínimo 4 caracteres) y repetila.</div>
+      <label>Repetir contraseña</label>
+      <input type="password" value=${pass2} onInput=${e => setPass2(e.target.value)} placeholder="••••••" />
+    </div>`}
+    ${err && html`<div class="err">${err}</div>`}
+    <button class="btn" disabled=${cargando} onClick=${entrar}>${cargando ? 'Ingresando…' : (crear ? 'Crear clave e ingresar' : 'Ingresar')}</button>
+  </div></div>`;
+}
+
+/* ============== FORM DESPACHO ============== */
+function FormDespacho({ m, sesion, controlStock, saldos, onGuardar }) {
+  const [vehTxt, setVehTxt] = useState('');
+  const [choferSel, setChoferSel] = useState('');
+  const [choferLibre, setChoferLibre] = useState('');
+  const [actividad, setActividad] = useState('');
+  const [tareaCod, setTareaCod] = useState('');
+  const [contratistaId, setContratistaId] = useState('');
+  const [lote, setLote] = useState('');
+  const [depId, setDepId] = useState('');
+  const [litros, setLitros] = useState('');
+  const [medida, setMedida] = useState('');
+  const [foto, setFoto] = useState(null);
+  const [firma, setFirma] = useState(null);
+  const [obs, setObs] = useState('');
+  const [err, setErr] = useState('');
+  const fileRef = useRef();
+
+  const veh = (m.vehiculos || []).find(v => String(v.CODIGO).toLowerCase() === vehTxt.trim().toLowerCase());
+  const tareas = (m.tareas || []).filter(t => t.ACTIVIDAD === actividad);
+  const tarea = tareas.find(t => String(t.COD) === tareaCod);
+  const tipoMedida = veh ? (veh.TIPO_MEDIDA === 'odometro' ? 'Odómetro (km)' : 'Horómetro (hs)') : 'Horómetro / Odómetro';
+
+  useEffect(() => {
+    if (veh && veh.RESPONSABLE) {
+      const ch = (m.choferes || []).find(c => c.NOMBRE === veh.RESPONSABLE);
+      if (ch) setChoferSel(ch.ID);
+      else { setChoferSel('__otro'); setChoferLibre(veh.RESPONSABLE); }
+    }
+  }, [vehTxt]);
+
+  const onFoto = async e => { const f = e.target.files && e.target.files[0]; if (f) setFoto(await comprimirFoto(f)); };
+
+  const guardar = () => {
+    setErr('');
+    if (!veh) return setErr('Elegí un código de vehículo válido');
+    const choferNombre = choferSel === '__otro' ? choferLibre.trim() : ((m.choferes || []).find(c => c.ID === choferSel) || {}).NOMBRE;
+    if (!choferNombre) return setErr('Indicá el chofer / responsable del equipo');
+    if (!actividad || !tarea) return setErr('Elegí actividad y tarea');
+    if (!lote) return setErr('Elegí la finca / lote');
+    if (!depId) return setErr('Elegí el depósito de origen');
+    if (!litros || Number(litros) <= 0) return setErr('Los litros deben ser mayores a 0');
+    if (!firma) return setErr('Falta la firma del chofer (conformidad)');
+    const dep = (m.depositos || []).find(d => d.ID === depId);
+    const ctr = (m.contratistas || []).find(c => c.ID === contratistaId);
+    onGuardar({
+      id: uid(), fecha: new Date().toISOString(),
+      vehiculoCod: veh.CODIGO, choferId: choferSel === '__otro' ? '' : choferSel, chofer: choferNombre,
+      actividad, tareaCod: tarea.COD, tarea: tarea.DESCRIPCION,
+      contratistaId: contratistaId || '', contratista: ctr ? ctr.NOMBRE : '',
+      lote, depositoId: depId, deposito: dep ? dep.NOMBRE : '',
+      litros: Number(litros), medida: medida === '' ? null : Number(medida),
+      tipoMedida: veh.TIPO_MEDIDA || '', fotoBase64: foto, firmaBase64: firma, obs
+    });
+    setVehTxt(''); setChoferSel(''); setChoferLibre(''); setActividad(''); setTareaCod('');
+    setContratistaId(''); setLote(''); setDepId(''); setLitros(''); setMedida('');
+    setFoto(null); setFirma(null); setObs('');
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const saldoDe = id => { const s = (saldos || []).find(x => x.id === id); return s ? ` (saldo: ${fmt(s.saldo)} L)` : ''; };
+  const propios = (m.choferes || []).filter(c => c.TIPO === 'propio');
+  const deContr = (m.choferes || []).filter(c => c.TIPO !== 'propio');
+
+  return html`<div>
+    <h2>Nuevo despacho</h2>
+    <div class="sub">Fecha, vale y despachador (${sesion.nombre}) se registran automáticamente.</div>
+
+    <label>Código de vehículo / máquina</label>
+    <input list="dl-veh" value=${vehTxt} onInput=${e => setVehTxt(e.target.value)} placeholder="Ej: 522B, T12, 934C…" autocapitalize="characters" />
+    <datalist id="dl-veh">${(m.vehiculos || []).map(v => html`<option key=${v.CODIGO} value=${v.CODIGO}>${v.DESCRIPCION} · ${v.RESPONSABLE || ''} · ${v.TRANSPORTE}</option>`)}</datalist>
+    ${veh && html`<div class="hint">🚜 ${veh.DESCRIPCION} · ${veh.PATENTE_CHASIS || ''} · ${veh.TRANSPORTE}</div>`}
+
+    <label>Chofer / Responsable del equipo</label>
+    <select value=${choferSel} onChange=${e => setChoferSel(e.target.value)}>
+      <option value="">Seleccionar…</option>
+      ${propios.length > 0 && html`<optgroup label="Choferes propios">${propios.map(c => html`<option key=${c.ID} value=${c.ID}>${c.NOMBRE}</option>`)}</optgroup>`}
+      ${deContr.length > 0 && html`<optgroup label="Choferes de contratistas">${deContr.map(c => html`<option key=${c.ID} value=${c.ID}>${c.NOMBRE} · ${c.TRANSPORTE || ''}</option>`)}</optgroup>`}
+      <option value="__otro">Otro (escribir nombre)</option>
+    </select>
+    ${choferSel === '__otro' && html`<input style=${{ marginTop: '6px' }} value=${choferLibre} onInput=${e => setChoferLibre(e.target.value)} placeholder="Apellido y nombre del chofer" />`}
+
+    <label>Actividad</label>
+    <select value=${actividad} onChange=${e => { setActividad(e.target.value); setTareaCod(''); }}>
+      <option value="">Seleccionar…</option>
+      ${(m.actividades || []).map(a => html`<option key=${a.ID} value=${a.NOMBRE}>${a.NOMBRE}</option>`)}
+    </select>
+
+    <label>Tarea</label>
+    <select value=${tareaCod} onChange=${e => setTareaCod(e.target.value)} disabled=${!actividad}>
+      <option value="">${actividad ? 'Seleccionar…' : 'Elegí una actividad primero'}</option>
+      ${tareas.map(t => html`<option key=${t.COD} value=${String(t.COD)}>${t.DESCRIPCION}</option>`)}
+    </select>
+
+    <label>Contratista (si aplica)</label>
+    <select value=${contratistaId} onChange=${e => setContratistaId(e.target.value)}>
+      <option value="">Propio / Sin contratista</option>
+      ${(m.contratistas || []).map(c => html`<option key=${c.ID} value=${c.ID}>${c.NOMBRE} · ${c.TIPO || ''}</option>`)}
+    </select>
+
+    <label>Finca / Lote</label>
+    <input list="dl-lote" value=${lote} onInput=${e => setLote(e.target.value)} placeholder="Escribí para buscar el lote…" />
+    <datalist id="dl-lote">${(m.fincas || []).map(f => html`<option key=${f.LOTE} value=${f.LOTE}>${f.FINCA} · ${f.ENTIDAD}</option>`)}</datalist>
+
+    <label>Depósito / Tanque de origen</label>
+    <select value=${depId} onChange=${e => setDepId(e.target.value)}>
+      <option value="">Seleccionar…</option>
+      ${(m.depositos || []).map(d => html`<option key=${d.ID} value=${d.ID}>${d.NOMBRE}${controlStock ? saldoDe(d.ID) : ''}</option>`)}
+    </select>
+
+    <label>Litros despachados</label>
+    <input type="number" inputmode="decimal" value=${litros} onInput=${e => setLitros(e.target.value)} placeholder="0" />
+
+    <label>${tipoMedida}</label>
+    <input type="number" inputmode="decimal" value=${medida} onInput=${e => setMedida(e.target.value)} placeholder="Lectura del medidor" />
+
+    <label>Foto del medidor</label>
+    <input ref=${fileRef} type="file" accept="image/*" capture="environment" onChange=${onFoto} style=${{ display: foto ? 'none' : 'block' }} />
+    ${foto && html`<div>
+      <img class="fotoprev" src=${foto} />
+      <button type="button" class="btnr" style=${{ marginTop: '6px' }}
+        onClick=${() => { setFoto(null); if (fileRef.current) fileRef.current.value = ''; }}>✕ Quitar foto</button>
+    </div>`}
+
+    <label>Firma del chofer (obligatoria)</label>
+    <${Firma} value=${firma} onChange=${setFirma} />
+
+    <label>Observaciones</label>
+    <textarea rows="2" value=${obs} onInput=${e => setObs(e.target.value)} placeholder="Opcional"></textarea>
+
+    ${err && html`<div class="err">${err}</div>`}
+    ${!navigator.onLine && html`<div class="hint" style=${{ background: '#fdecea', color: '#8a2a2a' }}>📴 Sin señal: la carga queda guardada en el celular y se sube sola al recuperar conexión.</div>`}
+    <button class="btn" onClick=${guardar}>✓ Guardar despacho</button>
+  </div>`;
+}
+
+/* ============== TARJETA DE CARGA ============== */
+function Card({ d, pendiente }) {
+  return html`<div class="card">
+    <div class="top">
+      <div>
+        <b style=${{ fontSize: '14px' }}>${d.VEHICULO_COD || d.vehiculoCod}</b>
+        <span style=${{ fontSize: '12px', color: '#888' }}> · ${d.ACTIVIDAD || d.actividad} › ${d.TAREA || d.tarea}</span>
+      </div>
+      <span class="lit">${fmt(d.LITROS || d.litros)} L</span>
+    </div>
+    <div class="det">
+      📍 ${d.LOTE || d.lote} &nbsp; ⛽ ${d.DEPOSITO || d.deposito}<br/>
+      🧑‍🔧 ${d.CHOFER || d.chofer} &nbsp; 🕒 ${fmtF(d.FECHA_HORA || d.fecha)}
+      ${(d.MEDIDA || d.medida) ? html`<span> &nbsp;📊 ${fmt(d.MEDIDA || d.medida)}</span>` : ''}
+      ${(d.NRO_VALE) ? html`<span> &nbsp;🧾 Vale Nº ${d.NRO_VALE}</span>` : ''}
+    </div>
+    ${(d.CONTRATISTA || d.contratista) ? html`<span class="tagc">👷 ${d.CONTRATISTA || d.contratista}</span>` : ''}
+    ${(d.OBS || d.obs) ? html`<div class="det" style=${{ fontStyle: 'italic' }}>"${d.OBS || d.obs}"</div>` : ''}
+    <div style=${{ marginTop: '6px' }}>
+      ${pendiente ? html`<span class="tagp">⏳ Pendiente de subir</span>` : html`<span class="tags">✓ Sincronizado</span>`}
+    </div>
+  </div>`;
+}
+
+/* ============== SALDOS ============== */
+function Saldos({ data }) {
+  if (!data || !data.controlStock) return html`<div>
+    <h2>Saldos por depósito</h2>
+    <div class="hint">El control de stock está desactivado (Fase 1 de prueba). Cuando midan los tanques y carguen los saldos iniciales en la planilla, activá CONTROL_STOCK = SI en Config y acá van a aparecer los saldos en vivo.</div>
+  </div>`;
+  return html`<div>
+    <h2>Saldos por depósito</h2>
+    <div class="sub">Saldo = inicial + entradas − despachos (desde la fecha de corte)</div>
+    ${data.saldos.map(s => {
+      const base = s.inicial + s.entradas;
+      const pct = base > 0 ? Math.max(0, Math.min(100, s.saldo / base * 100)) : 0;
+      const bajo = base > 0 && s.saldo < base * 0.2;
+      return html`<div class="saldo-card" key=${s.id}>
+        <div style=${{ display: 'flex', justifyContent: 'space-between' }}>
+          <div><b style=${{ fontSize: '14px' }}>⛽ ${s.nombre}</b><div style=${{ fontSize: '11px', color: '#999' }}>${s.tipo}</div></div>
+          <div style=${{ textAlign: 'right' }}><b style=${{ fontSize: '20px', color: bajo ? '#b91c1c' : 'var(--verde)' }}>${fmt(s.saldo)}</b><div style=${{ fontSize: '11px', color: '#999' }}>litros</div></div>
+        </div>
+        <div class="barra"><div style=${{ width: pct + '%', background: bajo ? '#dc2626' : 'var(--verde)' }}></div></div>
+        <div class="fila-saldo"><span>Inicial: ${fmt(s.inicial)}</span><span style=${{ color: 'var(--verde)' }}>+ ${fmt(s.entradas)}</span><span style=${{ color: '#b5790a' }}>− ${fmt(s.salidas)}</span></div>
+        ${bajo && html`<div class="err">⚠ Saldo bajo — coordinar reabastecimiento</div>`}
+      </div>`;
+    })}
+  </div>`;
+}
+
+/* ============== BARRA HORIZONTAL ============== */
+function HBar({ items, color }) {
+  const max = Math.max(...items.map(i => i.v), 1);
+  return html`<div>${items.map((i, k) => html`<div class="hbar" key=${k}>
+    <div class="lbl"><span>${i.n}</span><b>${fmt(i.v)} L</b></div>
+    <div class="pista"><div class="rell" style=${{ width: (i.v / max * 100) + '%', background: color || 'var(--verde)' }}></div></div>
+  </div>`)}</div>`;
+}
+
+/* ============== PANEL (ADMIN) ============== */
+function Panel({ sesion, m }) {
+  const [desde, setDesde] = useState(inicioMes());
+  const [hasta, setHasta] = useState(hoyISO());
+  const [rows, setRows] = useState(null);
+  const [cargando, setCargando] = useState(false);
+
+  const buscar = async () => {
+    if (!navigator.onLine) return;
+    setCargando(true);
+    const r = await api('movimiento', { desde, hasta }, sesion.token);
+    setCargando(false);
+    if (r.ok) setRows(r.data);
+  };
+  useEffect(() => { buscar(); }, []);
+
+  if (!rows) return html`<div><h2>Panel de control</h2>
+    <div class="sub">${cargando ? 'Cargando…' : 'Requiere conexión para consultar el movimiento.'}</div></div>`;
+
+  const total = rows.reduce((s, d) => s + Number(d.LITROS || 0), 0);
+  const conCtr = rows.filter(d => d.CONTRATISTA);
+  const litCtr = conCtr.reduce((s, d) => s + Number(d.LITROS || 0), 0);
+  const pctCtr = total ? Math.round(litCtr / total * 100) : 0;
+
+  const agrupar = (campo) => {
+    const o = {};
+    rows.forEach(d => { const k = d[campo] || '—'; o[k] = (o[k] || 0) + Number(d.LITROS || 0); });
+    return Object.entries(o).map(([n, v]) => ({ n, v })).sort((a, b) => b.v - a.v);
+  };
+  const porAct = agrupar('ACTIVIDAD');
+  const porCtr = agrupar('CONTRATISTA').filter(x => x.n !== '—');
+
+  // contratista × actividad
+  const cxa = {};
+  conCtr.forEach(d => {
+    cxa[d.CONTRATISTA] = cxa[d.CONTRATISTA] || {};
+    cxa[d.CONTRATISTA][d.ACTIVIDAD] = (cxa[d.CONTRATISTA][d.ACTIVIDAD] || 0) + Number(d.LITROS || 0);
+  });
+
+  // consumo diario
+  const porDia = {};
+  rows.forEach(d => { const k = String(d.FECHA_HORA).slice(0, 10); porDia[k] = (porDia[k] || 0) + Number(d.LITROS || 0); });
+  const dias = Object.entries(porDia).sort((a, b) => a[0].localeCompare(b[0]));
+  const maxDia = Math.max(...dias.map(d => d[1]), 1);
+
+  // por entidad (vía finca del lote)
+  const entDe = lote => { const f = (m.fincas || []).find(x => x.LOTE === lote); return f ? (f.ENTIDAD || '—') : '—'; };
+  const porEntObj = {};
+  rows.forEach(d => { const e = entDe(d.LOTE); porEntObj[e] = (porEntObj[e] || 0) + Number(d.LITROS || 0); });
+  const porEnt = Object.entries(porEntObj).map(([n, v]) => ({ n, v })).sort((a, b) => b.v - a.v);
+
+  const topVeh = agrupar('VEHICULO_COD').slice(0, 5);
+
+  return html`<div>
+    <h2>Panel de control</h2>
+    <div class="sub">Consumo de gasoil en el período elegido.</div>
+    <div class="filtros">
+      <div><label>Desde</label><input type="date" value=${desde} onInput=${e => setDesde(e.target.value)} /></div>
+      <div><label>Hasta</label><input type="date" value=${hasta} onInput=${e => setHasta(e.target.value)} /></div>
+    </div>
+    <button class="btn2" onClick=${buscar}>${cargando ? '⟳ Cargando…' : '🔍 Aplicar período'}</button>
+
+    <div class="kpis" style=${{ marginTop: '12px' }}>
+      <div class="kpi"><div class="v">${fmt(total)}</div><div class="l">Total litros</div><div class="s">${rows.length} despachos</div></div>
+      <div class="kpi"><div class="v oro">${rows.length ? fmt(total / rows.length) : 0}</div><div class="l">Promedio / carga</div><div class="s">litros</div></div>
+      <div class="kpi"><div class="v mar">${fmt(litCtr)}</div><div class="l">A contratistas</div><div class="s">${pctCtr}% del total</div></div>
+      <div class="kpi"><div class="v">${fmt(total - litCtr)}</div><div class="l">Propios</div><div class="s">${100 - pctCtr}% del total</div></div>
+    </div>
+
+    <div class="seccion"><h3>⚙ Litros por actividad</h3>
+      ${porAct.length ? html`<${HBar} items=${porAct} />` : html`<div class="sub">Sin datos.</div>`}
+    </div>
+
+    <div class="seccion"><h3>📈 Consumo diario</h3>
+      ${dias.length ? html`<div class="dias">${dias.map(([f, v]) => html`<div class="dia" key=${f} title=${f + ': ' + fmt(v) + ' L'}>
+        <div class="col" style=${{ height: Math.max(3, v / maxDia * 78) + 'px' }}></div>
+        <div class="dl">${f.slice(8, 10)}</div>
+      </div>`)}</div>` : html`<div class="sub">Sin datos.</div>`}
+    </div>
+
+    <div class="seccion"><h3>👷 Litros por contratista</h3>
+      ${porCtr.length ? html`<${HBar} items=${porCtr} color="var(--oro)" />` : html`<div class="sub">Sin cargas de contratistas en el período.</div>`}
+    </div>
+
+    <div class="seccion"><h3>📋 Contratistas: actividad y litros</h3>
+      ${Object.keys(cxa).length === 0 && html`<div class="sub">Sin datos.</div>`}
+      ${Object.entries(cxa).map(([ctr, acts]) => {
+        const sub = Object.values(acts).reduce((s, v) => s + v, 0);
+        return html`<div key=${ctr} style=${{ marginBottom: '10px' }}>
+          <b style=${{ fontSize: '13px' }}>${ctr}</b>
+          <table class="tbl"><tbody>
+            ${Object.entries(acts).sort((a, b) => b[1] - a[1]).map(([a, v]) => html`<tr key=${a}><td>${a}</td><td>${fmt(v)} L</td></tr>`)}
+            <tr class="tot"><td>Subtotal</td><td>${fmt(sub)} L</td></tr>
+          </tbody></table>
+        </div>`;
+      })}
+    </div>
+
+    <div style=${{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+      <div class="seccion" style=${{ marginBottom: 0 }}><h3>🏢 Por entidad</h3>
+        <table class="tbl"><tbody>${porEnt.map(e => html`<tr key=${e.n}><td>${e.n}</td><td>${fmt(e.v)}</td></tr>`)}</tbody></table>
+      </div>
+      <div class="seccion" style=${{ marginBottom: 0 }}><h3>🚜 Top vehículos</h3>
+        <table class="tbl"><tbody>${topVeh.map(v => html`<tr key=${v.n}><td>${v.n}</td><td>${fmt(v.v)}</td></tr>`)}</tbody></table>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============== ABM (ADMIN) ============== */
+const ESQUEMAS = {
+  Usuarios:     { clave: 'ID',     cols: ['ID', 'NOMBRE', 'ROL', 'ACTIVO'], sels: { ROL: ['admin', 'taller', 'despachador'] } },
+  Vehiculos:    { clave: 'CODIGO', cols: ['CODIGO', 'DESCRIPCION', 'RESPONSABLE', 'DNI', 'PATENTE_CHASIS', 'PATENTE_SEMI', 'CELULAR', 'TRANSPORTE', 'TIPO_MEDIDA', 'ACTIVO'], sels: { TIPO_MEDIDA: ['horometro', 'odometro'] } },
+  Choferes:     { clave: 'ID',     cols: ['ID', 'NOMBRE', 'DNI', 'CELULAR', 'TIPO', 'TRANSPORTE', 'ACTIVO'], sels: { TIPO: ['propio', 'contratista'] } },
+  Contratistas: { clave: 'ID',     cols: ['ID', 'NOMBRE', 'TIPO', 'ACTIVO'] },
+  Actividades:  { clave: 'ID',     cols: ['ID', 'NOMBRE', 'ACTIVO'] },
+  Tareas:       { clave: 'COD',    cols: ['COD', 'DESCRIPCION', 'U', 'MEDIDA', 'ACTIVIDAD', 'ACTIVO'] },
+  Fincas:       { clave: 'LOTE',   cols: ['LOTE', 'FINCA', 'ENTIDAD', 'ACTIVO'] },
+  Depositos:    { clave: 'ID',     cols: ['ID', 'NOMBRE', 'TIPO', 'CAPACIDAD', 'SALDO_INICIAL', 'FECHA_CORTE', 'ACTIVO'], sels: { TIPO: ['fijo', 'movil'] } },
+};
+
+function ABM({ sesion, onCambio, avisar }) {
+  const [tabla, setTabla] = useState('Usuarios');
+  const [rows, setRows] = useState([]);
+  const [filtro, setFiltro] = useState('');
+  const [edit, setEdit] = useState(null);   // {fila, esAlta}
+  const [cargando, setCargando] = useState(false);
+  const esq = ESQUEMAS[tabla];
+
+  const listar = async (t) => {
+    setCargando(true);
+    const r = await api('abm', { tabla: t || tabla, op: 'listar' }, sesion.token);
+    setCargando(false);
+    if (r.ok) setRows(r.data); else avisar(r.error, false);
+  };
+  useEffect(() => { listar(tabla); }, [tabla]);
+
+  const guardar = async () => {
+    const f = edit.fila;
+    if (!f[esq.clave]) return avisar('Completá el campo ' + esq.clave, false);
+    let r;
+    if (edit.esAlta) {
+      if (f.ACTIVO === undefined) f.ACTIVO = 'SI';
+      r = await api('abm', { tabla, op: 'alta', fila: f }, sesion.token);
+    } else {
+      const cambios = {}; esq.cols.forEach(c => { if (c !== esq.clave) cambios[c] = f[c]; });
+      r = await api('abm', { tabla, op: 'editar', claveValor: f[esq.clave], cambios }, sesion.token);
+    }
+    if (r.ok) { setEdit(null); avisar('Guardado ✓'); listar(); onCambio(); }
+    else avisar(r.error, false);
+  };
+
+  const toggleActivo = async (f) => {
+    const r = await api('abm', { tabla, op: 'editar', claveValor: f[esq.clave], cambios: { ACTIVO: f.ACTIVO === 'SI' ? 'NO' : 'SI' } }, sesion.token);
+    if (r.ok) { listar(); onCambio(); } else avisar(r.error, false);
+  };
+
+  const resetClave = async (f) => {
+    const r = await api('abm', { tabla: 'Usuarios', op: 'editar', claveValor: f.ID, cambios: { HASH: '', SALT: '' } }, sesion.token);
+    if (r.ok) avisar('Clave reseteada: ' + f.ID + ' crea una nueva al entrar ✓'); else avisar(r.error, false);
+  };
+
+  const nuevaFila = () => {
+    const f = {};
+    esq.cols.forEach(c => f[c] = '');
+    if (esq.clave === 'ID') f.ID = tabla.slice(0, 2).toLowerCase() + Date.now().toString(36).slice(-5);
+    f.ACTIVO = 'SI';
+    setEdit({ fila: f, esAlta: true });
+  };
+
+  const vis = rows.filter(r => !filtro || JSON.stringify(r).toLowerCase().includes(filtro.toLowerCase()));
+
+  return html`<div>
+    <h2>Tablas maestras (ABM)</h2>
+    <div class="sub">Alta, edición y activar/desactivar. La baja es lógica: nada se borra.</div>
+    <label>Tabla</label>
+    <select value=${tabla} onChange=${e => { setTabla(e.target.value); setFiltro(''); }}>
+      ${Object.keys(ESQUEMAS).map(t => html`<option key=${t} value=${t}>${t}</option>`)}
+    </select>
+    <label>Buscar</label>
+    <input value=${filtro} onInput=${e => setFiltro(e.target.value)} placeholder="Filtrar…" />
+    <div style=${{ display: 'flex', gap: '8px', margin: '10px 0' }}>
+      <button class="btn2" onClick=${nuevaFila}>＋ Alta</button>
+      <button class="btn2" onClick=${() => listar()}>${cargando ? '⟳…' : '↺ Refrescar'}</button>
+      <span style=${{ fontSize: '11px', color: '#999', alignSelf: 'center' }}>${vis.length} de ${rows.length}</span>
+    </div>
+
+    ${vis.slice(0, 200).map(f => html`<div class=${'abm-row' + (f.ACTIVO !== 'SI' ? ' inactivo' : '')} key=${String(f[esq.clave])}>
+      <div class="info">
+        <div class="t1">${String(f[esq.clave])} · ${f.NOMBRE || f.DESCRIPCION || f.FINCA || ''}</div>
+        <div class="t2">${esq.cols.filter(c => [esq.clave, 'NOMBRE', 'DESCRIPCION', 'ACTIVO'].indexOf(c) === -1).map(c => f[c]).filter(Boolean).join(' · ')}</div>
+      </div>
+      <button class="btn2" onClick=${() => setEdit({ fila: Object.assign({}, f), esAlta: false })}>✎</button>
+      <button class=${f.ACTIVO === 'SI' ? 'btnr' : 'btn2'} onClick=${() => toggleActivo(f)}>${f.ACTIVO === 'SI' ? '⏻' : '✓'}</button>
+      ${tabla === 'Usuarios' && html`<button class="btn2" title="Resetear clave" onClick=${() => resetClave(f)}>🔑</button>`}
+    </div>`)}
+    ${vis.length > 200 && html`<div class="sub">Mostrando 200 — afiná el filtro.</div>`}
+
+    ${edit && html`<div class="modal" onClick=${() => setEdit(null)}>
+      <div class="caja" onClick=${e => e.stopPropagation()}>
+        <h3>${edit.esAlta ? 'Alta en ' : 'Editar '} ${tabla}</h3>
+        ${esq.cols.map(c => html`<div key=${c}>
+          <label>${c}${c === esq.clave && !edit.esAlta ? ' (no editable)' : ''}</label>
+          ${(esq.sels && esq.sels[c]) || c === 'ACTIVO'
+            ? html`<select value=${edit.fila[c]} disabled=${c === esq.clave && !edit.esAlta}
+                onChange=${e => setEdit({ ...edit, fila: { ...edit.fila, [c]: e.target.value } })}>
+                ${(c === 'ACTIVO' ? ['SI', 'NO'] : esq.sels[c]).map(o => html`<option key=${o} value=${o}>${o}</option>`)}
+              </select>`
+            : html`<input value=${edit.fila[c]} disabled=${c === esq.clave && !edit.esAlta}
+                onInput=${e => setEdit({ ...edit, fila: { ...edit.fila, [c]: e.target.value } })} />`}
+        </div>`)}
+        <button class="btn" onClick=${guardar}>✓ Guardar</button>
+        <button class="btn2" style=${{ width: '100%', marginTop: '8px', padding: '12px' }} onClick=${() => setEdit(null)}>Cancelar</button>
+      </div>
+    </div>`}
+  </div>`;
+}
+
+/* ============== APP ============== */
+function App() {
+  const [sesion, setSesion] = useState(() => { try { return JSON.parse(localStorage.getItem('sesion')) || null; } catch (e) { return null; } });
+  const [m, setM] = useState({});
+  const [tab, setTab] = useState('nuevo');
+  const [online, setOnline] = useState(navigator.onLine);
+  const [pendientes, setPendientes] = useState(0);
+  const [sync, setSync] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [misCargas, setMisCargas] = useState([]);
+  const [colaLocal, setColaLocal] = useState([]);
+  const [mov, setMov] = useState([]);
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
+  const [saldosData, setSaldosData] = useState(null);
+  const [reab, setReab] = useState({ depId: '', litros: '', obs: '' });
+
+  const avisar = (msg, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); };
+
+  const refrescarCola = useCallback(async () => {
+    const c = await idb.all('cola');
+    setColaLocal(c);
+    setPendientes(c.length);
+  }, []);
+
+  const cargarMaestros = useCallback(async (forzar) => {
+    const cache = await idb.get('kv', 'maestros');
+    if (cache) setM(cache);
+    if ((navigator.onLine && sesion) && (forzar || !cache)) {
+      const r = await api('maestros', {}, sesion.token);
+      if (r.ok) { setM(r.data); await idb.put('kv', r.data, 'maestros'); }
+      else if (cache) setM(cache);
+    }
+  }, [sesion]);
+
+  const sincronizar = useCallback(async () => {
+    if (!navigator.onLine || !sesion) return;
+    const cola = await idb.all('cola');
+    if (!cola.length) return;
+    setSync(true);
+    let ok = 0, expiro = false;
+    for (const item of cola) {
+      const r = item.tipo === 'despacho'
+        ? await api('nuevoDespacho', { despacho: item.payload }, sesion.token)
+        : await api('nuevoReabastecimiento', { reabastecimiento: item.payload }, sesion.token);
+      if (r.ok) { await idb.del('cola', item.id); ok++; }
+      else if (String(r.error).indexOf('Sesión') > -1) { expiro = true; break; }
+    }
+    setSync(false);
+    await refrescarCola();
+    if (ok > 0) avisar(`Sincronizados ${ok} movimiento${ok > 1 ? 's' : ''} ✓`);
+    if (expiro) { avisar('Sesión expirada: volvé a ingresar (las cargas quedan guardadas)', false); salir(false); }
+  }, [sesion]);
+
+  const cargarMisCargas = useCallback(async () => {
+    const cache = await idb.get('kv', 'misCargas');
+    if (cache) setMisCargas(cache);
+    if (navigator.onLine && sesion) {
+      const r = await api('misDespachos', {}, sesion.token);
+      if (r.ok) { setMisCargas(r.data); await idb.put('kv', r.data, 'misCargas'); }
+    }
+  }, [sesion]);
+
+  const cargarSaldos = useCallback(async () => {
+    if (navigator.onLine && sesion) {
+      const r = await api('saldos', {}, sesion.token);
+      if (r.ok) { setSaldosData(r.data); await idb.put('kv', r.data, 'saldos'); }
+    } else { const c = await idb.get('kv', 'saldos'); if (c) setSaldosData(c); }
+  }, [sesion]);
+
+  useEffect(() => {
+    const on = () => { setOnline(true); sincronizar(); };
+    const off = () => setOnline(false);
+    window.addEventListener('online', on); window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, [sincronizar]);
+
+  useEffect(() => {
+    if (!sesion) return;
+    refrescarCola(); cargarMaestros(); cargarSaldos(); sincronizar();
+    setTab(sesion.rol === 'despachador' ? 'nuevo' : (sesion.rol === 'admin' ? 'panel' : 'movimiento'));
+  }, [sesion]);
+
+  const salir = (borrar = true) => { if (borrar) localStorage.removeItem('sesion'); setSesion(null); };
+
+  if (!sesion) return html`<${Login} onOk=${d => { localStorage.setItem('sesion', JSON.stringify(d)); setSesion(d); }} />`;
+
+  const esGestor = sesion.rol === 'admin' || sesion.rol === 'taller';
+  const controlStock = saldosData ? saldosData.controlStock : ((m.config || {}).CONTROL_STOCK === 'SI');
+
+  const guardarDespacho = async (d) => {
+    await idb.put('cola', { id: d.id, tipo: 'despacho', payload: d, creado: Date.now() });
+    await refrescarCola();
+    avisar(navigator.onLine ? 'Despacho guardado, subiendo…' : 'Guardado offline — se subirá con señal');
+    setTab('mias'); cargarMisCargas();
+    sincronizar();
+  };
+
+  const guardarReab = async () => {
+    if (!reab.depId || !reab.litros || Number(reab.litros) <= 0) return avisar('Completá depósito y litros', false);
+    const dep = (m.depositos || []).find(x => x.ID === reab.depId);
+    const r = { id: uid(), fecha: new Date().toISOString(), depositoId: reab.depId, deposito: dep ? dep.NOMBRE : '', litros: Number(reab.litros), obs: reab.obs };
+    await idb.put('cola', { id: r.id, tipo: 'reabastecimiento', payload: r, creado: Date.now() });
+    await refrescarCola();
+    setReab({ depId: '', litros: '', obs: '' });
+    avisar(navigator.onLine ? 'Reabastecimiento guardado, subiendo…' : 'Guardado offline');
+    sincronizar();
+  };
+
+  const buscarMov = async () => {
+    if (!navigator.onLine) return avisar('El movimiento general requiere conexión', false);
+    const r = await api('movimiento', { desde, hasta }, sesion.token);
+    if (r.ok) setMov(r.data); else avisar(r.error, false);
+  };
+
+  let tabs;
+  if (sesion.rol === 'despachador') tabs = [['nuevo', '➕', 'Despachar'], ['mias', '📋', 'Mis cargas']];
+  else if (sesion.rol === 'admin') tabs = [['panel', '📊', 'Panel'], ['nuevo', '➕', 'Despachar'], ['movimiento', '📋', 'Movim.'], ['saldos', '💧', 'Saldos'], ['reabas', '⛽', 'Reabast.'], ['abm', '⚙', 'Tablas']];
+  else tabs = [['nuevo', '➕', 'Despachar'], ['movimiento', '📋', 'Movim.'], ['saldos', '💧', 'Saldos'], ['reabas', '⛽', 'Reabast.']];
+
+  const pendMios = colaLocal.filter(c => c.tipo === 'despacho');
+
+  return html`<div style=${{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <header>
+      <div class="logo">
+        <div class="ic">⛽</div>
+        <div style=${{ flex: 1 }}>
+          <b>Despacho Gasoil</b>
+          <div style=${{ fontSize: '11px', opacity: .8 }}>Ingenio San Isidro · ${sesion.nombre}</div>
+        </div>
+        <button class="chip" onClick=${() => salir(true)}>Salir</button>
+      </div>
+      <div class="estado">
+        <span class=${'chip' + (online ? '' : ' off')}>${online ? '📶 En línea' : '📴 Sin señal'}</span>
+        ${pendientes > 0 && html`<span class="chip">☁ ${pendientes} pendiente${pendientes > 1 ? 's' : ''}</span>`}
+        ${online && pendientes > 0 && html`<button class="chip sync" onClick=${sincronizar}>${sync ? '⟳ Sincronizando…' : '⟳ Sincronizar'}</button>`}
+        ${online && html`<button class="chip" onClick=${() => { cargarMaestros(true); avisar('Listas actualizadas ✓'); }}>↺ Listas</button>`}
+      </div>
+    </header>
+
+    <main>
+      ${tab === 'panel' && sesion.rol === 'admin' && html`<${Panel} sesion=${sesion} m=${m} />`}
+
+      ${tab === 'nuevo' && html`<${FormDespacho} m=${m} sesion=${sesion} controlStock=${controlStock} saldos=${saldosData && saldosData.saldos} onGuardar=${guardarDespacho} />`}
+
+      ${tab === 'mias' && html`<div>
+        <h2>Mis cargas</h2>
+        <div class="sub">Primero las pendientes de subir, después las sincronizadas.</div>
+        ${pendMios.map(c => html`<${Card} key=${c.id} d=${c.payload} pendiente=${true} />`)}
+        ${misCargas.map(d => html`<${Card} key=${d.ID} d=${d} pendiente=${false} />`)}
+        ${pendMios.length === 0 && misCargas.length === 0 && html`<div class="sub">Sin cargas todavía.</div>`}
+      </div>`}
+
+      ${tab === 'movimiento' && esGestor && html`<div>
+        <h2>Movimiento general</h2>
+        <div class="filtros">
+          <div><label>Desde</label><input type="date" value=${desde} onInput=${e => setDesde(e.target.value)} /></div>
+          <div><label>Hasta</label><input type="date" value=${hasta} onInput=${e => setHasta(e.target.value)} /></div>
+        </div>
+        <button class="btn2" onClick=${buscarMov}>🔍 Buscar</button>
+        <div style=${{ marginTop: '12px' }}>
+          ${mov.map(d => html`<${Card} key=${d.ID} d=${d} pendiente=${false} />`)}
+          ${mov.length === 0 && html`<div class="sub">Elegí un rango y tocá Buscar.</div>`}
+        </div>
+      </div>`}
+
+      ${tab === 'saldos' && esGestor && html`<div>
+        <${Saldos} data=${saldosData} />
+        ${online && html`<button class="btn2" onClick=${cargarSaldos}>↺ Actualizar saldos</button>`}
+      </div>`}
+
+      ${tab === 'reabas' && esGestor && html`<div>
+        <h2>Reabastecer depósito</h2>
+        <div class="sub">Registra una entrada de gasoil (suma al saldo cuando el control esté activo).</div>
+        <label>Depósito</label>
+        <select value=${reab.depId} onChange=${e => setReab({ ...reab, depId: e.target.value })}>
+          <option value="">Seleccionar…</option>
+          ${(m.depositos || []).map(d => html`<option key=${d.ID} value=${d.ID}>${d.NOMBRE}</option>`)}
+        </select>
+        <label>Litros ingresados</label>
+        <input type="number" inputmode="decimal" value=${reab.litros} onInput=${e => setReab({ ...reab, litros: e.target.value })} placeholder="0" />
+        <label>Observaciones</label>
+        <input value=${reab.obs} onInput=${e => setReab({ ...reab, obs: e.target.value })} placeholder="Remito, proveedor… (opcional)" />
+        <button class="btn" onClick=${guardarReab}>＋ Registrar entrada</button>
+      </div>`}
+
+      ${tab === 'abm' && sesion.rol === 'admin' && html`<${ABM} sesion=${sesion} avisar=${avisar} onCambio=${() => cargarMaestros(true)} />`}
+    </main>
+
+    <nav>
+      ${tabs.map(([id, ic, lbl]) => html`<button key=${id} class=${tab === id ? 'on' : ''}
+        onClick=${() => { setTab(id); if (id === 'mias') cargarMisCargas(); if (id === 'movimiento') buscarMov(); if (id === 'saldos') cargarSaldos(); }}>
+        <span class="i">${ic}</span>${lbl}</button>`)}
+    </nav>
+
+    ${toast && html`<div class=${'toast' + (toast.ok ? '' : ' mal')}>${toast.msg}</div>`}
+  </div>`;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
+
+/* Service worker para funcionar offline (archivo sw.js aparte) */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
