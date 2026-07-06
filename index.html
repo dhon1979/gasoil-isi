@@ -308,7 +308,7 @@ function FormDespacho({ m, sesion, controlStock, saldos, onGuardar }) {
     <select value=${choferSel} onChange=${e => setChoferSel(e.target.value)}>
       <option value="">Seleccionar…</option>
       ${propios.length > 0 && html`<optgroup label="Choferes propios">${propios.map(c => html`<option key=${c.ID} value=${c.ID}>${c.NOMBRE}</option>`)}</optgroup>`}
-      ${deContr.length > 0 && html`<optgroup label="Choferes de contratistas">${deContr.map(c => html`<option key=${c.ID} value=${c.ID}>${c.NOMBRE} · ${c.TRANSPORTE || ''}</option>`)}</optgroup>`}
+      ${deContr.length > 0 && html`<optgroup label="Choferes de terceros / contratistas">${deContr.map(c => html`<option key=${c.ID} value=${c.ID}>${c.NOMBRE}${c.TRANSPORTE ? ' · ' + c.TRANSPORTE : ''}</option>`)}</optgroup>`}
       <option value="__otro">Otro (escribir nombre)</option>
     </select>
     ${choferSel === '__otro' && html`<input style=${{ marginTop: '6px' }} value=${choferLibre} onInput=${e => setChoferLibre(e.target.value)} placeholder="Apellido y nombre del chofer" />`}
@@ -674,9 +674,11 @@ function App() {
     if (cache) setM(cache);
     if ((navigator.onLine && sesion) && (forzar || !cache)) {
       const r = await api('maestros', {}, sesion.token);
-      if (r.ok) { setM(r.data); await idb.put('kv', r.data, 'maestros'); }
-      else if (cache) setM(cache);
+      if (r.ok) { setM(r.data); await idb.put('kv', r.data, 'maestros'); return true; }
+      if (cache) setM(cache);
+      return false;
     }
+    return !!cache;
   }, [sesion]);
 
   const sincronizar = useCallback(async () => {
@@ -723,7 +725,7 @@ function App() {
 
   useEffect(() => {
     if (!sesion) return;
-    refrescarCola(); cargarMaestros(); cargarSaldos(); sincronizar();
+    refrescarCola(); cargarMaestros(true); cargarSaldos(); sincronizar();
     setTab(sesion.rol === 'despachador' ? 'nuevo' : (sesion.rol === 'admin' ? 'panel' : 'movimiento'));
   }, [sesion]);
 
@@ -780,7 +782,7 @@ function App() {
         <span class=${'chip' + (online ? '' : ' off')}>${online ? '📶 En línea' : '📴 Sin señal'}</span>
         ${pendientes > 0 && html`<span class="chip">☁ ${pendientes} pendiente${pendientes > 1 ? 's' : ''}</span>`}
         ${online && pendientes > 0 && html`<button class="chip sync" onClick=${sincronizar}>${sync ? '⟳ Sincronizando…' : '⟳ Sincronizar'}</button>`}
-        ${online && html`<button class="chip" onClick=${() => { cargarMaestros(true); avisar('Listas actualizadas ✓'); }}>↺ Listas</button>`}
+        ${online && html`<button class="chip" onClick=${async () => { const ok = await cargarMaestros(true); avisar(ok ? 'Listas actualizadas ✓' : 'No se pudieron actualizar las listas — revisá conexión o volvé a ingresar', ok); }}>↺ Listas</button>`}
       </div>
     </header>
 
