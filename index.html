@@ -151,15 +151,15 @@ const hoyISO = () => new Date().toISOString().slice(0, 10);
 const inicioMes = () => hoyISO().slice(0, 8) + '01';
 
 /* ============== COMPRESIÓN DE FOTO ============== */
-function comprimirFoto(file) {
+function comprimirFoto(file, maxDim = 1000, calidad = 0.7) {
   return new Promise(res => {
     const img = new Image();
     img.onload = () => {
-      const esc = Math.min(1, 1000 / Math.max(img.width, img.height));
+      const esc = Math.min(1, maxDim / Math.max(img.width, img.height));
       const c = document.createElement('canvas');
       c.width = img.width * esc; c.height = img.height * esc;
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      res(c.toDataURL('image/jpeg', 0.7));
+      res(c.toDataURL('image/jpeg', calidad));
     };
     const fr = new FileReader();
     fr.onload = () => img.src = fr.result;
@@ -746,11 +746,19 @@ function App() {
 
   const guardarReab = async () => {
     if (!reab.depId || !reab.litros || Number(reab.litros) <= 0) return avisar('Completá depósito y litros', false);
+    if (!reab.fechaDesc) return avisar('Indicá la fecha y hora de la descarga', false);
+    const fd = new Date(reab.fechaDesc);
+    if (isNaN(fd) || fd.getTime() > Date.now() + 5 * 60000) return avisar('La fecha de descarga no puede ser futura', false);
     const dep = (m.depositos || []).find(x => x.ID === reab.depId);
-    const r = { id: uid(), fecha: new Date().toISOString(), depositoId: reab.depId, deposito: dep ? dep.NOMBRE : '', litros: Number(reab.litros), obs: reab.obs };
+    const r = {
+      id: uid(), fecha: new Date().toISOString(), fechaDescarga: fd.toISOString(),
+      depositoId: reab.depId, deposito: dep ? dep.NOMBRE : '', litros: Number(reab.litros),
+      nroRemito: (reab.nroRemito || '').trim(), remitoBase64: reab.foto || null, obs: reab.obs || ''
+    };
     await idb.put('cola', { id: r.id, tipo: 'reabastecimiento', payload: r, creado: Date.now() });
     await refrescarCola();
-    setReab({ depId: '', litros: '', obs: '' });
+    setReab({ depId: '', litros: '', obs: '', fechaDesc: '', nroRemito: '', foto: null });
+    const fi = document.getElementById('remitoInput'); if (fi) fi.value = '';
     avisar(navigator.onLine ? 'Reabastecimiento guardado, subiendo…' : 'Guardado offline');
     sincronizar();
   };
@@ -825,10 +833,25 @@ function App() {
           <option value="">Seleccionar…</option>
           ${(m.depositos || []).map(d => html`<option key=${d.ID} value=${d.ID}>${d.NOMBRE}</option>`)}
         </select>
+        <label>Fecha y hora de la descarga</label>
+        <input type="datetime-local" value=${reab.fechaDesc || ''}
+          max=${new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+          onInput=${e => setReab({ ...reab, fechaDesc: e.target.value })} />
+        <div class="hint">Cargá cuándo se descargó realmente el gasoil en el tanque (según remito o confirmación del campo), no la hora actual.</div>
         <label>Litros ingresados</label>
         <input type="number" inputmode="decimal" value=${reab.litros} onInput=${e => setReab({ ...reab, litros: e.target.value })} placeholder="0" />
+        <label>Nº de remito del proveedor</label>
+        <input value=${reab.nroRemito || ''} onInput=${e => setReab({ ...reab, nroRemito: e.target.value })} placeholder="Ej: 0001-00012345" />
+        <label>Foto del remito</label>
+        <input id="remitoInput" type="file" accept="image/*" style=${{ display: reab.foto ? 'none' : 'block' }}
+          onChange=${async e => { const f = e.target.files && e.target.files[0]; if (!f) return; const img = await comprimirFoto(f, 1600, 0.75); setReab(p => ({ ...p, foto: img })); }} />
+        ${reab.foto && html`<div>
+          <img class="fotoprev" src=${reab.foto} style=${{ objectFit: 'contain', background: '#f4f4f4' }} />
+          <button type="button" class="btnr" style=${{ marginTop: '6px' }}
+            onClick=${() => { setReab(p => ({ ...p, foto: null })); const fi = document.getElementById('remitoInput'); if (fi) fi.value = ''; }}>✕ Quitar foto</button>
+        </div>`}
         <label>Observaciones</label>
-        <input value=${reab.obs} onInput=${e => setReab({ ...reab, obs: e.target.value })} placeholder="Remito, proveedor… (opcional)" />
+        <input value=${reab.obs} onInput=${e => setReab({ ...reab, obs: e.target.value })} placeholder="Proveedor, confirmó (despachador)… (opcional)" />
         <button class="btn" onClick=${guardarReab}>＋ Registrar entrada</button>
       </div>`}
 
