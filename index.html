@@ -399,19 +399,28 @@ function Saldos({ data }) {
   </div>`;
   return html`<div>
     <h2>Saldos por depósito</h2>
-    <div class="sub">Saldo = inicial + entradas − despachos (desde la fecha de corte)</div>
+    <div class="sub">Saldo = inicial + entradas − despachos (desde la fecha de corte). La barra muestra el % de llenado según la capacidad del tanque.</div>
     ${data.saldos.map(s => {
-      const base = s.inicial + s.entradas;
-      const pct = base > 0 ? Math.max(0, Math.min(100, s.saldo / base * 100)) : 0;
-      const bajo = base > 0 && s.saldo < base * 0.2;
+      const cap = Number(s.capacidad) || 0;
+      const pct = cap > 0 ? s.saldo / cap * 100 : null;
+      const ancho = pct === null ? 0 : Math.max(0, Math.min(100, pct));
+      const negativo = s.saldo < 0;
+      const excede = cap > 0 && s.saldo > cap;
+      const bajo = !negativo && pct !== null && pct < 20;
+      const color = (negativo || excede || bajo) ? '#dc2626' : (pct !== null && pct < 40 ? 'var(--oro)' : 'var(--verde)');
       return html`<div class="saldo-card" key=${s.id}>
         <div style=${{ display: 'flex', justifyContent: 'space-between' }}>
-          <div><b style=${{ fontSize: '14px' }}>⛽ ${s.nombre}</b><div style=${{ fontSize: '11px', color: '#999' }}>${s.tipo}</div></div>
-          <div style=${{ textAlign: 'right' }}><b style=${{ fontSize: '20px', color: bajo ? '#b91c1c' : 'var(--verde)' }}>${fmt(s.saldo)}</b><div style=${{ fontSize: '11px', color: '#999' }}>litros</div></div>
+          <div><b style=${{ fontSize: '14px' }}>⛽ ${s.nombre}</b>
+            <div style=${{ fontSize: '11px', color: '#999' }}>${s.tipo}${cap > 0 ? ' · capacidad ' + fmt(cap) + ' L' : ''}</div></div>
+          <div style=${{ textAlign: 'right' }}><b style=${{ fontSize: '20px', color: (negativo || excede || bajo) ? '#b91c1c' : 'var(--verde)' }}>${fmt(s.saldo)}</b>
+            <div style=${{ fontSize: '11px', color: '#999' }}>litros${pct !== null ? ' · ' + Math.round(pct) + '%' : ''}</div></div>
         </div>
-        <div class="barra"><div style=${{ width: pct + '%', background: bajo ? '#dc2626' : 'var(--verde)' }}></div></div>
+        <div class="barra"><div style=${{ width: ancho + '%', background: color }}></div></div>
         <div class="fila-saldo"><span>Inicial: ${fmt(s.inicial)}</span><span style=${{ color: 'var(--verde)' }}>+ ${fmt(s.entradas)}</span><span style=${{ color: '#b5790a' }}>− ${fmt(s.salidas)}</span></div>
-        ${bajo && html`<div class="err">⚠ Saldo bajo — coordinar reabastecimiento</div>`}
+        ${cap <= 0 && html`<div class="hint">Cargá la CAPACIDAD del tanque en Tablas → Depositos para ver el % de llenado.</div>`}
+        ${negativo && html`<div class="err">⚠ Saldo negativo: faltan reabastecimientos por cargar o el saldo inicial está mal.</div>`}
+        ${excede && html`<div class="err">⚠ El saldo supera la capacidad del tanque: revisar entradas o saldo inicial.</div>`}
+        ${bajo && html`<div class="err">⚠ Menos del 20% de la capacidad — coordinar reabastecimiento</div>`}
       </div>`;
     })}
   </div>`;
