@@ -802,11 +802,7 @@ function App() {
     if (r1.ok) setMov(r1.data); else avisar(r1.error, false);
     if (r2.ok) setMovReab(r2.data); else avisar(r2.error, false);
   };
-    if (!navigator.onLine) return avisar('El movimiento general requiere conexión', false);
-    const r = await api('movimiento', { desde, hasta }, sesion.token);
-    if (r.ok) setMov(r.data); else avisar(r.error, false);
-  };
-
+   
   let tabs;
   if (sesion.rol === 'despachador') tabs = [['nuevo', '➕', 'Despachar'], ['mias', '📋', 'Mis cargas']];
   else if (sesion.rol === 'admin') tabs = [['panel', '📊', 'Panel'], ['nuevo', '➕', 'Despachar'], ['movimiento', '📋', 'Movim.'], ['saldos', '💧', 'Saldos'], ['reabas', '⛽', 'Reabast.'], ['abm', '⚙', 'Tablas']];
