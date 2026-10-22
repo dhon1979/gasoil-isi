@@ -369,6 +369,7 @@ function FormDespacho({ m, sesion, controlStock, saldos, onGuardar }) {
 
 /* ============== TARJETA DE CARGA ============== */
 function Card({ d, pendiente }) {
+  const medida = d.MEDIDA || d.medida;
   return html`<div class="card">
     <div class="top">
       <div>
@@ -378,16 +379,34 @@ function Card({ d, pendiente }) {
       <span class="lit">${fmt(d.LITROS || d.litros)} L</span>
     </div>
     <div class="det">
-      📍 ${d.LOTE || d.lote} &nbsp; ⛽ ${d.DEPOSITO || d.deposito}<br/>
-      🧑‍🔧 ${d.CHOFER || d.chofer} &nbsp; 🕒 ${fmtF(d.FECHA_HORA || d.fecha)}
-      ${(d.MEDIDA || d.medida) ? html`<span> &nbsp;📊 ${fmt(d.MEDIDA || d.medida)}</span>` : ''}
-      ${(d.NRO_VALE) ? html`<span> &nbsp;🧾 Vale Nº ${d.NRO_VALE}</span>` : ''}
+      <div>📍 ${d.LOTE || d.lote} · ⛽ ${d.DEPOSITO || d.deposito}</div>
+      <div>🧑‍🔧 ${d.CHOFER || d.chofer}${d.DESPACHADOR ? ' · 📝 ' + d.DESPACHADOR : ''}</div>
+      <div>🕒 ${fmtF(d.FECHA_HORA || d.fecha)}${medida ? ' · 📊 ' + fmt(medida) : ''}${d.NRO_VALE ? ' · 🧾 Vale Nº ' + d.NRO_VALE : ''}</div>
     </div>
     ${(d.CONTRATISTA || d.contratista) ? html`<span class="tagc">👷 ${d.CONTRATISTA || d.contratista}</span>` : ''}
     ${(d.OBS || d.obs) ? html`<div class="det" style=${{ fontStyle: 'italic' }}>"${d.OBS || d.obs}"</div>` : ''}
-    <div style=${{ marginTop: '6px' }}>
+    <div style=${{ marginTop: '6px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
       ${pendiente ? html`<span class="tagp">⏳ Pendiente de subir</span>` : html`<span class="tags">✓ Sincronizado</span>`}
+      ${d.FOTO_URL ? html`<a href=${d.FOTO_URL} target="_blank" style=${{ fontSize: '11px', color: 'var(--verde)' }}>📷 Foto medidor</a>` : ''}
+      ${d.FIRMA_URL ? html`<a href=${d.FIRMA_URL} target="_blank" style=${{ fontSize: '11px', color: 'var(--verde)' }}>✍️ Firma</a>` : ''}
     </div>
+  </div>`;
+}
+
+function CardReab({ r }) {
+  return html`<div class="card" style=${{ borderLeft: '4px solid var(--verde)' }}>
+    <div class="top">
+      <div><b style=${{ fontSize: '14px' }}>⬆ Reabastecimiento</b>
+        <span style=${{ fontSize: '12px', color: '#888' }}> · ${r.DEPOSITO}</span></div>
+      <span class="lit" style=${{ color: 'var(--verde)' }}>+ ${fmt(r.LITROS)} L</span>
+    </div>
+    <div class="det">
+      <div>🕒 Descarga: ${fmtF(r.FECHA_HORA)}</div>
+      ${r.NRO_REMITO ? html`<div>🧾 Remito Nº ${r.NRO_REMITO}</div>` : ''}
+      <div>📝 Cargó: ${r.USUARIO}${r.CREADO_EN ? ' · ' + fmtF(r.CREADO_EN) : ''}</div>
+      ${r.OBS ? html`<div style=${{ fontStyle: 'italic' }}>"${r.OBS}"</div>` : ''}
+    </div>
+    ${r.REMITO_URL ? html`<a href=${r.REMITO_URL} target="_blank" class="tagc" style=${{ textDecoration: 'none' }}>📄 Ver remito</a>` : ''}
   </div>`;
 }
 
@@ -665,6 +684,8 @@ function App() {
   const [misCargas, setMisCargas] = useState([]);
   const [colaLocal, setColaLocal] = useState([]);
   const [mov, setMov] = useState([]);
+  const [movReab, setMovReab] = useState([]);
+  const [tipoMov, setTipoMov] = useState('todos');
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
   const [saldosData, setSaldosData] = useState(null);
@@ -772,7 +793,15 @@ function App() {
     sincronizar();
   };
 
-  const buscarMov = async () => {
+    const buscarMov = async () => {
+    if (!navigator.onLine) return avisar('El movimiento general requiere conexión', false);
+    const [r1, r2] = await Promise.all([
+      api('movimiento', { desde, hasta }, sesion.token),
+      api('movReabastecimientos', { desde, hasta }, sesion.token)
+    ]);
+    if (r1.ok) setMov(r1.data); else avisar(r1.error, false);
+    if (r2.ok) setMovReab(r2.data); else avisar(r2.error, false);
+  };
     if (!navigator.onLine) return avisar('El movimiento general requiere conexión', false);
     const r = await api('movimiento', { desde, hasta }, sesion.token);
     if (r.ok) setMov(r.data); else avisar(r.error, false);
@@ -822,11 +851,31 @@ function App() {
           <div><label>Desde</label><input type="date" value=${desde} onInput=${e => setDesde(e.target.value)} /></div>
           <div><label>Hasta</label><input type="date" value=${hasta} onInput=${e => setHasta(e.target.value)} /></div>
         </div>
-        <button class="btn2" onClick=${buscarMov}>🔍 Buscar</button>
-        <div style=${{ marginTop: '12px' }}>
-          ${mov.map(d => html`<${Card} key=${d.ID} d=${d} pendiente=${false} />`)}
-          ${mov.length === 0 && html`<div class="sub">Elegí un rango y tocá Buscar.</div>`}
-        </div>
+               <label>Tipo de movimiento</label>
+        <select value=${tipoMov} onChange=${e => setTipoMov(e.target.value)}>
+          <option value="todos">Todos</option>
+          <option value="despachos">Despachos (salidas)</option>
+          <option value="reabas">Reabastecimientos (entradas)</option>
+        </select>
+        <button class="btn2" style=${{ marginTop: '10px' }} onClick=${buscarMov}>🔍 Buscar</button>
+        ${(() => {
+          const lista = [
+            ...(tipoMov !== 'reabas' ? mov.map(d => ({ t: 'd', f: d.FECHA_HORA, d })) : []),
+            ...(tipoMov !== 'despachos' ? movReab.map(d => ({ t: 'r', f: d.FECHA_HORA, d })) : [])
+          ].sort((a, b) => new Date(b.f) - new Date(a.f));
+          const nD = lista.filter(x => x.t === 'd'), nR = lista.filter(x => x.t === 'r');
+          const lD = nD.reduce((s, x) => s + Number(x.d.LITROS || 0), 0);
+          const lR = nR.reduce((s, x) => s + Number(x.d.LITROS || 0), 0);
+          return html`<div style=${{ marginTop: '12px' }}>
+            ${lista.length > 0 && html`<div class="hint" style=${{ marginBottom: '10px' }}>
+              ${tipoMov !== 'reabas' ? `⬇ ${nD.length} despachos: ${fmt(lD)} L` : ''}${tipoMov === 'todos' ? '  ·  ' : ''}${tipoMov !== 'despachos' ? `⬆ ${nR.length} reabastecimientos: ${fmt(lR)} L` : ''}
+            </div>`}
+            ${lista.map(x => x.t === 'd'
+              ? html`<${Card} key=${'d' + x.d.ID} d=${x.d} pendiente=${false} />`
+              : html`<${CardReab} key=${'r' + x.d.ID} r=${x.d} />`)}
+            ${lista.length === 0 && html`<div class="sub">Elegí un rango y tocá Buscar.</div>`}
+          </div>`;
+        })()}
       </div>`}
 
       ${tab === 'saldos' && esGestor && html`<div>
