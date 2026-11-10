@@ -255,7 +255,8 @@ function FormDespacho({ m, sesion, controlStock, saldos, onGuardar }) {
   const tareas = (m.tareas || []).filter(t => t.ACTIVIDAD === actividad);
   const tarea = tareas.find(t => String(t.COD) === tareaCod);
   const tipoMedida = veh ? (veh.TIPO_MEDIDA === 'odometro' ? 'Odómetro (km)' : 'Horómetro (hs)') : 'Horómetro / Odómetro';
-
+  const limite = Number((m.config || {}).LITROS_MAX_AVISO) || 500;
+  const excedeLimite = Number(litros) > limite;
   useEffect(() => {
     if (veh && veh.RESPONSABLE) {
       const ch = (m.choferes || []).find(c => c.NOMBRE === veh.RESPONSABLE);
@@ -275,6 +276,10 @@ function FormDespacho({ m, sesion, controlStock, saldos, onGuardar }) {
     if (!lote) return setErr('Elegí la finca / lote');
     if (!depId) return setErr('Elegí el depósito de origen');
     if (!litros || Number(litros) <= 0) return setErr('Los litros deben ser mayores a 0');
+      if (Number(litros) > limite) {
+      if (!obs.trim()) return setErr(`Más de ${limite} L: indicá el motivo en Observaciones`);
+      if (!window.confirm(`Vas a registrar ${fmt(litros)} litros, más de lo habitual (${limite} L). ¿Es correcto?`)) return;
+    }
     if (!firma) return setErr('Falta la firma del chofer (conformidad)');
     const dep = (m.depositos || []).find(d => d.ID === depId);
     const ctr = (m.contratistas || []).find(c => c.ID === contratistaId);
@@ -345,7 +350,7 @@ function FormDespacho({ m, sesion, controlStock, saldos, onGuardar }) {
 
     <label>Litros despachados</label>
     <input type="number" inputmode="decimal" value=${litros} onInput=${e => setLitros(e.target.value)} placeholder="0" />
-
+    ${excedeLimite && html`<div class="hint" style=${{ background: '#fdecea', color: '#8a2a2a' }}>⚠ ${fmt(litros)} L supera el máximo habitual de ${limite} L. Revisá que no sea un error de tipeo. Si es correcto, explicá el motivo en Observaciones.</div>`}      
     <label>${tipoMedida}</label>
     <input type="number" inputmode="decimal" value=${medida} onInput=${e => setMedida(e.target.value)} placeholder="Lectura del medidor" />
 
