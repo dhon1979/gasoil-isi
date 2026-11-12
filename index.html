@@ -417,7 +417,37 @@ function CardReab({ r }) {
   </div>`;
 }
 
-/* ============== SALDOS ============== */
+/* ============== MI TANQUE (despachador con tanque asignado) ============== */
+function MiTanque({ sesion, m }) {
+  const [desde, setDesde] = useState(inicioMes());
+  const [hasta, setHasta] = useState(hoyISO());
+  const [rows, setRows] = useState(null);
+  const [cargando, setCargando] = useState(false);
+  const ids = String(sesion.tanques || '').split(',').map(s => s.trim()).filter(Boolean);
+  const nombres = ids.map(id => ((m.depositos || []).find(d => d.ID === id) || {}).NOMBRE || id).join(', ');
+  const buscar = async () => {
+    if (!navigator.onLine) return;
+    setCargando(true);
+    const r = await api('despachosTanque', { desde, hasta }, sesion.token);
+    setCargando(false);
+    setRows(r.ok ? r.data : []);
+  };
+  useEffect(() => { buscar(); }, []);
+  const total = (rows || []).reduce((s, d) => s + Number(d.LITROS || 0), 0);
+  return html`<div>
+    <h2>Despachos de ${nombres}</h2>
+    <div class="sub">Todo lo despachado desde este tanque, por cualquier despachador.</div>
+    <div class="filtros">
+      <div><label>Desde</label><input type="date" value=${desde} onInput=${e => setDesde(e.target.value)} /></div>
+      <div><label>Hasta</label><input type="date" value=${hasta} onInput=${e => setHasta(e.target.value)} /></div>
+    </div>
+    <button class="btn2" onClick=${buscar}>${cargando ? '⟳ Cargando…' : '🔍 Buscar'}</button>
+    ${!navigator.onLine && html`<div class="sub" style=${{ marginTop: '10px' }}>Requiere conexión.</div>`}
+    ${rows && html`<div class="hint" style=${{ margin: '10px 0' }}>⬇ ${rows.length} despachos: ${fmt(total)} L</div>`}
+    ${(rows || []).map(d => html`<${Card} key=${d.ID} d=${d} pendiente=${false} />`)}
+  </div>`;
+}
+  /* ============== SALDOS ============== */
 function Saldos({ data }) {
     const [verTodos, setVerTodos] = useState(false);
   const tieneMov = s => Number(s.inicial) !== 0 || Number(s.entradas) > 0 || Number(s.salidas) > 0;
@@ -575,7 +605,7 @@ function Panel({ sesion, m }) {
 
 /* ============== ABM (ADMIN) ============== */
 const ESQUEMAS = {
-  Usuarios:     { clave: 'ID',     cols: ['ID', 'NOMBRE', 'ROL', 'ACTIVO'], sels: { ROL: ['admin', 'taller', 'despachador'] } },
+  Usuarios:     { clave: 'ID',     cols: ['ID', 'NOMBRE', 'ROL', 'TANQUE_VER', 'ACTIVO'], sels: { ROL: ['admin', 'taller', 'despachador'] } },
   Vehiculos:    { clave: 'CODIGO', cols: ['CODIGO', 'DESCRIPCION', 'RESPONSABLE', 'DNI', 'PATENTE_CHASIS', 'PATENTE_SEMI', 'CELULAR', 'TRANSPORTE', 'TIPO_MEDIDA', 'ACTIVO'], sels: { TIPO_MEDIDA: ['horometro', 'odometro'] } },
   Choferes:     { clave: 'ID',     cols: ['ID', 'NOMBRE', 'DNI', 'CELULAR', 'TIPO', 'TRANSPORTE', 'ACTIVO'], sels: { TIPO: ['propio', 'contratista'] } },
   Contratistas: { clave: 'ID',     cols: ['ID', 'NOMBRE', 'TIPO', 'ACTIVO'] },
@@ -814,7 +844,7 @@ function App() {
   };
    
   let tabs;
-  if (sesion.rol === 'despachador') tabs = [['nuevo', '➕', 'Despachar'], ['mias', '📋', 'Mis cargas']];
+    if (sesion.rol === 'despachador') tabs = [['nuevo', '➕', 'Despachar'], ['mias', '📋', 'Mis cargas'], ...(sesion.tanques ? [['tanque', '⛽', 'Mi tanque']] : [])];
   else if (sesion.rol === 'admin') tabs = [['panel', '📊', 'Panel'], ['nuevo', '➕', 'Despachar'], ['movimiento', '📋', 'Movim.'], ['saldos', '💧', 'Saldos'], ['reabas', '⛽', 'Reabast.'], ['abm', '⚙', 'Tablas']];
   else tabs = [['nuevo', '➕', 'Despachar'], ['movimiento', '📋', 'Movim.'], ['saldos', '💧', 'Saldos'], ['reabas', '⛽', 'Reabast.']];
 
@@ -842,7 +872,7 @@ function App() {
       ${tab === 'panel' && sesion.rol === 'admin' && html`<${Panel} sesion=${sesion} m=${m} />`}
 
       ${tab === 'nuevo' && html`<${FormDespacho} m=${m} sesion=${sesion} controlStock=${controlStock} saldos=${saldosData && saldosData.saldos} onGuardar=${guardarDespacho} />`}
-
+      ${tab === 'tanque' && sesion.tanques && html`<${MiTanque} sesion=${sesion} m=${m} />`}
       ${tab === 'mias' && html`<div>
         <h2>Mis cargas</h2>
         <div class="sub">Primero las pendientes de subir, después las sincronizadas.</div>
